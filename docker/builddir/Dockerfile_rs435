@@ -1,0 +1,101 @@
+FROM nvidia/opengl:1.2-glvnd-devel-ubuntu20.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl lsb-release wget gnupg
+RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+RUN curl -sSL 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0xC1CF6E31E6BADE8868B172B4F42ED6FBAB17C654' | apt-key add -
+
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends tzdata
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-noetic-desktop-full \
+    ros-noetic-camera-calibration \
+    ros-noetic-image-proc \
+    ros-noetic-image-view \
+    ros-noetic-usb-cam \
+    ros-noetic-realsense2-description \
+    ros-noetic-realsense2-camera \
+    ros-noetic-librealsense2 \
+    ros-noetic-rgbd-launch \
+    ros-noetic-pcl-ros \
+    ros-noetic-ddynamic-reconfigure \
+    pcl-tools \
+    python3-osrf-pycommon \
+    python3-catkin-tools \
+    python3-rosdep \
+    byobu \
+    libudev-dev \
+    python3-pip \
+    git \
+    vim \
+    net-tools \
+    build-essential \
+    libcanberra-gtk* \
+    dbus \
+    ninja-build \
+    software-properties-common \
+    imagemagick
+
+RUN mkdir -p /tmp/
+RUN mkdir -p /catkin_ws/src && \
+	cd /catkin_ws/src && \
+	/bin/bash -c "source /opt/ros/noetic/setup.bash; catkin_init_workspace" && \
+	cd /catkin_ws && \
+	/bin/bash -c "source /opt/ros/noetic/setup.bash; catkin build" && \
+	echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc && \
+	echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc && \
+	echo "export ROS_PACKAGE_PATH=\${ROS_PACKAGE_PATH}:/catkin_ws" >> ~/.bashrc && \
+	echo "export ROS_WORKSPACE=/catkin_ws" >> ~/.bashrc
+
+# OpenCV 3.2.0
+WORKDIR /
+RUN git clone https://github.com/opencv/opencv/ -b 3.2.0 --depth 1 
+RUN git clone https://github.com/opencv/opencv_contrib/ -b 3.2.0 --depth 1 
+RUN sed -i '1s/^/#define AVFMT_RAWPICTURE 0x0020\n/' /opencv/modules/videoio/src/cap_ffmpeg_impl.hpp
+RUN sed -i '1s/^/#define CODEC_FLAG_GLOBAL_HEADER AV_CODEC_FLAG_GLOBAL_HEADER\n/' /opencv/modules/videoio/src/cap_ffmpeg_impl.hpp
+RUN sed -i '1s/^/#define AV_CODEC_FLAG_GLOBAL_HEADER (1 << 22)\n/' /opencv/modules/videoio/src/cap_ffmpeg_impl.hpp
+RUN mkdir /opencv/build/
+WORKDIR /opencv/build/
+RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
+	  -D OPENCV_ENABLE_NONFREE=ON \
+	  -D ENABLE_PRECOMPILED_HEADERS=OFF \
+	  -D OPENCV_EXTRA_MODULES_PATH=/opencv_contrib/modules \
+      -D BUILD_opencv_python2=OFF \
+      -D BUILD_opencv_python3=OFF ..
+RUN make -j8; make install
+
+# RealSense
+WORKDIR /
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE
+RUN add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" -u
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    librealsense2-dkms \
+    librealsense2-utils \
+    librealsense2-dev
+WORKDIR /catkin_ws/src/
+RUN git clone https://github.com/IntelRealSense/realsense-ros.git -b ros1-legacy --recursive --depth 1
+
+# Detic
+ADD detectron2 /catkin_ws/src/detectron2
+ADD Detic /catkin_ws/src/Detic
+WORKDIR /catkin_ws/src/
+RUN python3 -m pip install --upgrade pip && python3 -m pip install torch==1.10.2+cu113 torchvision==0.11.3+cu113 torchaudio==0.10.2+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+WORKDIR /catkin_ws/src/detectron2
+RUN python3 -m pip install -e .
+WORKDIR /catkin_ws/src/Detic
+RUN python3 -m pip install -r requirements.txt 
+RUN mkdir models && wget https://dl.fbaipublicfiles.com/detic/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth -O models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth
+RUN wget https://web.eecs.umich.edu/~fouhey/fun/desk/desk.jpg
+
+# Generates bash commands
+WORKDIR /catkin_ws/src/
+RUN echo "roslaunch realsense2_camera demo_pointcloud.launch" >> ~/.bash_history
+RUN echo "rosrun pcl_ros pointcloud_to_pcd input:=/camera/depth/color/points _prefix:=/catkin_ws/src/realsense-ros/pcd/vel_" >> ~/.bash_history
+RUN echo "rosrun pcl_ros pointcloud_to_pcd input:=/points2 _prefix:=/catkin_ws/src/detic_ros/pcd/vel_" >> ~/.bash_history
+RUN echo "rosrun image_view image_saver image:=/camera/color/image_raw _filename_format:=/catkin_ws/src/realsense-ros/pcd/temp.png" >> ~/.bash_history
+RUN echo "roslaunch detic_ros usbcam_bringup.launch imageView:=true" >> ~/.bash_history
+RUN echo "roslaunch detic_ros rsd435_bringup.launch imageView:=true" >> ~/.bash_history
+RUN echo "rosrun image_view image_view image:=/docker/detic_segmentor/debug_image" >> ~/.bash_history
+RUN echo "rosrun image_view image_view image:=/docker/detic_segmentor/debug_segmentation_image _do_dynamic_scaling:=true" >> ~/.bash_history
+RUN echo "rostopic echo /docker/detic_segmentor/segmentation_info/detected_classes" >> ~/.bash_history
+RUN echo "python3 demo.py --config-file configs/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.yaml --input desk.jpg --output out.png --vocabulary lvis --opts MODEL.WEIGHTS models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth" >> ~/.bash_history
+RUN echo "python3 demo.py --config-file configs/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.yaml --video-input out.mp4 --output out --vocabulary lvis --opts MODEL.WEIGHTS models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth" >> ~/.bash_history
+RUN echo "display out.png"

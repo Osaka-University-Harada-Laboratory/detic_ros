@@ -1,0 +1,7 @@
+<launch>
+    <include file="$(find azure_kinect_ros_driver)/launch/driver.launch" >
+      <arg name="color_resolution" value="1080P"/>
+      <arg name="fps" value="5"/>
+    </include>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find detic_ros)/config/k4a_pcd_rviz.rviz"/>
+</launch>

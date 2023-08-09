@@ -1,0 +1,16 @@
+<launch>
+    <arg name="imageView" default="false" />
+
+    <include file="$(find realsense2_camera)/launch/rs_rgbd.launch" >
+        <arg name="color_width" value="1280"/>
+        <arg name="color_height" value="720"/>
+        <arg name="color_fps" value="30"/>
+    </include>
+
+    <group if="$(arg imageView)">
+        <node name="image_view" pkg="image_view" type="image_view" >
+            <remap from="image" to="/camera/color/image_raw"/>
+            <param name="autosize" value="true"/>
+        </node>
+    </group>
+</launch>

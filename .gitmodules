@@ -1,0 +1,6 @@
+[submodule "docker/builddir/detectron2"]
+	path = docker/builddir/detectron2
+	url = git@github.com:facebookresearch/detectron2.git
+[submodule "docker/builddir/Detic"]
+	path = docker/builddir/Detic
+	url = git@github.com:facebookresearch/Detic.git
