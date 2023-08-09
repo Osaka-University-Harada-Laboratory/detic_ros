@@ -8,8 +8,12 @@ import torch
 
 # Dirty but no way, because CenterNet2 is not package oriented
 # sys.path.insert(0, os.path.join(sys.path[0], 'third_party/CenterNet2/'))
-sys.path.insert(0, os.path.join('/catkin_ws/src/detic_ros/scripts', 'third_party/CenterNet2/'))
-sys.path.insert(0, '/catkin_ws/src/detic_ros/scripts')
+sys.path.insert(
+    0,
+    os.path.join(
+        '/catkin_ws/src/detic_ros/scripts',
+        'third_party/CenterNet2/'))  # noqa: E402
+sys.path.insert(0, '/catkin_ws/src/detic_ros/scripts')  # noqa: E402
 
 from detectron2.config import get_cfg
 from centernet.config import add_centernet_config
@@ -30,7 +34,8 @@ class NodeConfig:
     device_name: str
 
     @classmethod
-    def from_args(cls, 
+    def from_args(
+            cls,
             enable_pubsub: bool = True,
             out_debug_img: bool = True,
             out_debug_segimage: bool = True,
@@ -49,7 +54,7 @@ class NodeConfig:
         pack_path = rospkg.RosPack().get_path('detic_ros')
 
         default_detic_config_path = os.path.join(
-            pack_path, 'detic_configs', 
+            pack_path, 'detic_configs',
             'Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.yaml')
 
         default_model_weights_path = os.path.join(
@@ -90,11 +95,12 @@ class NodeConfig:
         cfg.merge_from_file(self.detic_config_path)
         cfg.MODEL.RETINANET.SCORE_THRESH_TEST = self.confidence_threshold
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = self.confidence_threshold
-        cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH = self.confidence_threshold
+        cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH = \
+            self.confidence_threshold
         cfg.merge_from_list(['MODEL.WEIGHTS', self.model_weights_path])
 
         # Similar to https://github.com/facebookresearch/Detic/demo.py
-        cfg.MODEL.ROI_BOX_HEAD.ZEROSHOT_WEIGHT_PATH = 'rand' # load later
+        cfg.MODEL.ROI_BOX_HEAD.ZEROSHOT_WEIGHT_PATH = 'rand'  # load later
         cfg.MODEL.ROI_HEADS.ONE_CLASS_PER_PROPOSAL = True
 
         # Maybe should edit detic_configs/Base-C2_L_R5021k_640b64_4x.yaml

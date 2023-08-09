@@ -18,26 +18,33 @@ from detectron2.config import get_cfg
 from detectron2.data.detection_utils import read_image
 from detectron2.utils.logger import setup_logger
 
-sys.path.insert(0, 'third_party/CenterNet2/')
+sys.path.insert(0, 'third_party/CenterNet2/')  # noqa: E402
 from centernet.config import add_centernet_config
 from detic.config import add_detic_config
 
 from detic.predictor import VisualizationDemo
 
-# Fake a video capture object OpenCV style - half width, half height of first screen using MSS
+
+# Fake a video capture object OpenCV style -
+# half width, half height of first screen using MSS
 class ScreenGrab:
+
     def __init__(self):
         self.sct = mss.mss()
         m0 = self.sct.monitors[0]
-        self.monitor = {'top': 0, 'left': 0, 'width': m0['width'] / 2, 'height': m0['height'] / 2}
+        self.monitor = {'top': 0,
+                        'left': 0,
+                        'width': m0['width'] / 2,
+                        'height': m0['height'] / 2}
 
     def read(self):
-        img =  np.array(self.sct.grab(self.monitor))
+        img = np.array(self.sct.grab(self.monitor))
         nf = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
         return (True, nf)
 
     def isOpened(self):
         return True
+
     def release(self):
         return True
 
@@ -45,19 +52,23 @@ class ScreenGrab:
 # constants
 WINDOW_NAME = "Detic"
 
+
 def setup_cfg(args):
     cfg = get_cfg()
     if args.cpu:
-        cfg.MODEL.DEVICE="cpu"
+        cfg.MODEL.DEVICE = "cpu"
     add_centernet_config(cfg)
     add_detic_config(cfg)
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     # Set score_threshold for builtin models
-    cfg.MODEL.RETINANET.SCORE_THRESH_TEST = args.confidence_threshold
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.confidence_threshold
-    cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH = args.confidence_threshold
-    cfg.MODEL.ROI_BOX_HEAD.ZEROSHOT_WEIGHT_PATH = 'rand' # load later
+    cfg.MODEL.RETINANET.SCORE_THRESH_TEST = \
+        args.confidence_threshold
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = \
+        args.confidence_threshold
+    cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH = \
+        args.confidence_threshold
+    cfg.MODEL.ROI_BOX_HEAD.ZEROSHOT_WEIGHT_PATH = 'rand'  # load later
     if not args.pred_all_class:
         cfg.MODEL.ROI_HEADS.ONE_CLASS_PER_PROPOSAL = True
     cfg.freeze()
@@ -65,10 +76,11 @@ def setup_cfg(args):
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(description="Detectron2 demo for builtin configs")
+    parser = argparse.ArgumentParser(
+        description="Detectron2 demo for builtin configs")
     parser.add_argument(
         "--config-file",
-        default="configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
+        default="configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",  # noqa: E251
         metavar="FILE",
         help="path to config file",
     )
@@ -152,7 +164,8 @@ if __name__ == "__main__":
             logger.info(
                 "{}: {} in {:.2f}s".format(
                     path,
-                    "detected {} instances".format(len(predictions["instances"]))
+                    "detected {} instances".format(
+                        len(predictions["instances"]))
                     if "instances" in predictions
                     else "finished",
                     time.time() - start_time,
@@ -161,14 +174,17 @@ if __name__ == "__main__":
 
             instances = predictions['instances'].to(torch.device("cpu"))
             # Create debug image
-            region_img = np.zeros((img.shape[0], img.shape[1])).astype(np.uint8)
+            region_img = np.zeros(
+                (img.shape[0], img.shape[1])).astype(np.uint8)
 
             # Create segmentation info message
             class_names = demo.metadata.get("thing_classes", None)
             class_indexes = instances.pred_classes.tolist()
-            class_names_detected = ['background'] + [class_names[i] for i in class_indexes]
-            class_scores = [1.0] + instances.scores.tolist()  # confidence with 1.0 about background detection
-            
+            class_names_detected = \
+                ['background'] + [class_names[i] for i in class_indexes]
+            # confidence with 1.0 about background detection
+            class_scores = [1.0] + instances.scores.tolist()
+
             print("class indexes:", class_indexes)
             print("class names detected:", class_names_detected)
             print("class scores:", class_scores)
@@ -181,11 +197,14 @@ if __name__ == "__main__":
                 # lable 0 is reserved for background label, so starting from 1
                 if cls_i == 142:  # box
                     region_img[mask] = 255
-                    tmp = np.zeros((img.shape[0], img.shape[1])).astype(np.uint8)
+                    tmp = np.zeros(
+                        (img.shape[0], img.shape[1])).astype(np.uint8)
                     tmp[mask] = 255
 
-                    ret, tmp_th = cv2.threshold(tmp, 127, 255, cv2.THRESH_BINARY)
-                    contours, hierarchy = cv2.findContours(tmp_th, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
+                    ret, tmp_th = cv2.threshold(
+                        tmp, 127, 255, cv2.THRESH_BINARY)
+                    contours, hierarchy = cv2.findContours(
+                        tmp_th, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
                     max_contour = None
                     max_area = 0
@@ -204,23 +223,37 @@ if __name__ == "__main__":
 
             region_img_disp = cv2.cvtColor(region_img, cv2.COLOR_GRAY2BGR)
             for x, y, box in zip(xvec, yvec, boxvec):
-                cv2.drawContours(region_img_disp, [box], 0, (0, 0, 255), 2)
-                cv2.line(region_img_disp, (x-5, y-5), (x+5, y+5), (0, 0, 255), 2)
-                cv2.line(region_img_disp, (x+5, y-5), (x-5, y+5), (0, 0, 255), 2)
+                cv2.drawContours(
+                    region_img_disp, [box], 0, (0, 0, 255), 2)
+                cv2.line(region_img_disp,
+                         (x-5, y-5),
+                         (x+5, y+5),
+                         (0, 0, 255),
+                         2)
+                cv2.line(region_img_disp,
+                         (x+5, y-5),
+                         (x-5, y+5),
+                         (0, 0, 255),
+                         2)
 
             if args.output:
                 if os.path.isdir(args.output):
                     assert os.path.isdir(args.output), args.output
-                    out_filename = os.path.join(args.output, os.path.basename(path))
+                    out_filename = os.path.join(
+                        args.output, os.path.basename(path))
                 else:
-                    assert len(args.input) == 1, "Please specify a directory with args.output"
+                    assert len(args.input) == 1, \
+                        "Please specify a directory with args.output"
                     out_filename = args.output
                 visualized_output.save(out_filename)
-                cv2.imwrite(out_filename[:-4]+'_region.png', region_img)
-                cv2.imwrite(out_filename[:-4]+'_region_center.png', region_img_disp)
+                cv2.imwrite(
+                    out_filename[:-4]+'_region.png', region_img)
+                cv2.imwrite(
+                    out_filename[:-4]+'_region_center.png', region_img_disp)
             else:
                 cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
-                cv2.imshow(WINDOW_NAME, visualized_output.get_image()[:, :, ::-1])
+                cv2.imshow(WINDOW_NAME,
+                           visualized_output.get_image()[:, :, ::-1])
                 if cv2.waitKey(0) == 27:
                     break  # esc to quit
     elif args.webcam:
@@ -245,8 +278,9 @@ if __name__ == "__main__":
         num_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         basename = os.path.basename(args.video_input)
         codec, file_ext = (
-            ("x264", ".mkv") if test_opencv_video_format("x264", ".mkv") else ("mp4v", ".mp4")
-        )
+            ("x264", ".mkv")
+            if test_opencv_video_format("x264", ".mkv")
+            else ("mp4v", ".mp4"))
         if codec == ".mp4v":
             warnings.warn("x264 codec not available, switching to mp4v")
         if args.output:
@@ -258,7 +292,8 @@ if __name__ == "__main__":
             assert not os.path.isfile(output_fname), output_fname
             output_file = cv2.VideoWriter(
                 filename=output_fname,
-                # some installation of opencv may not support x264 (due to its license),
+                # some installation of opencv
+                # may not support x264 (due to its license),
                 # you can try other format (e.g. MPEG)
                 fourcc=cv2.VideoWriter_fourcc(*codec),
                 fps=float(frames_per_second),
