@@ -7,13 +7,14 @@ Docker environment for Detic ROS driver. This repository was inspired by [HiroIs
 
 ## Features
 
-- ROS package for [Facebook Detic](https://github.com/facebookresearch/Detic)  
+- ROS Noetic package for [Facebook Detic](https://github.com/facebookresearch/Detic)  
 - Docker environment to execute the detic with [Microsoft Azure Kinect](https://azure.microsoft.com/en-us/products/kinect-dk/#overview)  
 - Docker environment to execute the detic with [Intel RealSense D435](https://www.intel.com/content/www/us/en/products/sku/128255/intel-realsense-depth-camera-d435/specifications.html) (or UVC camera)  
 
 ## Docker build environment (tested)
 
-- Ubuntu 20.04 (22.04 is not supported)
+- [Ubuntu 20.04 PC](https://ubuntu.com/certified/laptops?q=&limit=20&vendor=Dell&vendor=Lenovo&vendor=HP&release=20.04+LTS) (22.04 is not supported)
+  - [ROS Noetic (Python3)](https://wiki.ros.org/noetic/Installation/Ubuntu)
   - Docker 20.10.22
   - Docker Compose v2.4.1
   - nvidia-docker2 2.11.0-1
@@ -31,7 +32,7 @@ COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose build --no-cache --p
 1. Connect the camera device to the computer with a USB3.0 cable
 2. Execute the below command according to the device connected
 ```bash
-docker-compose up
+docker compose up
 ./utils/k4a_demo.sh
 ./utils/rsd435_demo.sh
 ./utils/webcam_demo.sh
