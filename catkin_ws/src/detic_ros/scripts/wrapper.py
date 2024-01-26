@@ -53,7 +53,7 @@ class DeticWrapper:
                                          Optional[Image],
                                          Optional[Image]]:
         bridge = CvBridge()
-        img = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
+        img = bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
 
         if self.node_config.verbose:
             time_start = rospy.Time.now()
