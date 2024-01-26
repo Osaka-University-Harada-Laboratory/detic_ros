@@ -1,13 +1,11 @@
 <launch>
-  <node name="hogehogehoge"
+  <node name="resized"
         pkg="nodelet" type="nodelet"
         args="standalone image_proc/resize"
         respawn="false">
-    <remap from="image" to="/camera/color/image_raw" />
+    <remap from="image" to="/rgb/image_raw" />
     <remap from="~image" to="/resized_image_color" />
-    <rosparam>
-      scale_width: 0.35
-      scale_height: 0.466
-    </rosparam>
+    <param name="scale_width" value="0.35" />
+    <param name="scale_height" value="0.466" />
   </node>
 </launch>
