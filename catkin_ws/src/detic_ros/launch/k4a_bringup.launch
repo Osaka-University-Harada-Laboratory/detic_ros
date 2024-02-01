@@ -2,7 +2,7 @@
     <arg name="imageView" default="false" />
 
     <include file="$(find azure_kinect_ros_driver)/launch/driver.launch" >
-        <arg name="color_resolution" value="1080P"/>
+        <arg name="color_resolution" value="720P"/>
         <arg name="fps" value="5"/>
     </include>
 

@@ -5,7 +5,7 @@
         respawn="false">
     <remap from="image" to="/rgb/image_raw" />
     <remap from="~image" to="/resized_image_color" />
-    <param name="scale_width" value="0.35" />
-    <param name="scale_height" value="0.466" />
+    <param name="scale_width" value="1.0" />
+    <param name="scale_height" value="1.0" />
   </node>
 </launch>
