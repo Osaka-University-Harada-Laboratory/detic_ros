@@ -4,7 +4,7 @@
   <arg name="verbose" default="true" />
   <arg name="enable_pubsub" default="true" />
   <arg name="out_debug_img" default="true" />
-  <arg name="out_debug_segimage" default="true" />
+  <arg name="out_debug_segimage" default="false" />
   <arg name="confidence_threshold" default="0.5" />
   <arg name="input_image" default="input" />
   <arg name="compressed" default="true" />

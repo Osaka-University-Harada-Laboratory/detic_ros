@@ -1,4 +1,4 @@
 std_msgs/Header header
-string[] detected_classes
+uint16[] detected_classes
 float32[] scores
 sensor_msgs/Image segmentation

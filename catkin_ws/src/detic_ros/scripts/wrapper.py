@@ -32,6 +32,7 @@ class DeticWrapper:
             self.custom_vocabulary = custom_vocabulary
 
     def __init__(self, node_config: NodeConfig):
+        print("[Tsuru] init DeticWrapper")
         self._adhoc_hack_metadata_path()
         detectron_cfg = node_config.to_detectron_config()
         dummy_args = self.DummyArgs(
@@ -39,6 +40,20 @@ class DeticWrapper:
 
         self.predictor = VisualizationDemo(detectron_cfg, dummy_args)
         self.node_config = node_config
+        
+        print("[Tsuru] generate object class table.")
+        class_names = self.predictor.metadata.get("thing_classes", None)
+        print("[Tsuru] num of classification object category: ", len(class_names))
+        
+        # save object class table as scv file
+        import csv
+        filename = "/catkin_ws/src/detic_ros/scripts/object_class_table.csv"
+        with open(filename, mode='w', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            for item in class_names:
+                writer.writerow([item])  # 各要素を1行として書き込む
+        print("[Tsuru] save object class table as ", filename)
+        
 
     @staticmethod
     def _adhoc_hack_metadata_path():
@@ -53,12 +68,13 @@ class DeticWrapper:
                                          Optional[Image],
                                          Optional[Image]]:
         bridge = CvBridge()
-        img = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
+        img = bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
 
         if self.node_config.verbose:
             time_start = rospy.Time.now()
 
         predictions, visualized_output = self.predictor.run_on_image(img)
+        # print("[Tsuru] predictions: ", predictions)
         instances = predictions['instances'].to(torch.device("cpu"))
 
         if self.node_config.verbose:
@@ -75,45 +91,49 @@ class DeticWrapper:
             debug_img = None
 
         # Create Image containing segmentation info
-        seg_img = Image(height=img.shape[0], width=img.shape[1])
-        seg_img.header = msg.header
-        seg_img.encoding = '8UC1'  # TODO(HiroIshida) are 256 classes enough??
-        seg_img.is_bigendian = 0
-        seg_img.step = seg_img.width * 1
-        data = np.zeros((seg_img.height, seg_img.width)).astype(np.uint8)
+        # img_msg = Image(height=img.shape[0], width=img.shape[1], encoding='mono16')
+        # img_msg.header = msg.header
+        # img_msg.encoding = '16UC1'  # 16bit unsigned int = 0 to 65535. actually, object classification results in 0 to 1203.
+        # img_msg.is_bigendian = 0
+        # img_msg.step = img_msg.width * 1  # 2 bytes per pixel
+        data = np.zeros((img.shape[0], img.shape[1])).astype(np.uint16)
+
+        object_class_ids = instances.pred_classes.tolist()
+        print("[Tsuru] object_class_ids: ", object_class_ids)
 
         # largest to smallest order to reduce occlusion.
         sorted_index = np.argsort(
             [-mask.sum() for mask in instances.pred_masks])
         for i in sorted_index:
+            object_id = object_class_ids[i]
             mask = instances.pred_masks[i]
-            # lable 0 is reserved for background label, so starting from 1
-            data[mask] = (i + 1)
-        assert data.shape == (seg_img.height, seg_img.width)
-        seg_img.data = data.flatten().astype(np.uint8).tolist()
-        assert set(seg_img.data) == \
-            set(list(range(len(instances.pred_masks)+1)))
+            # [tsuru] write object_id number on pixels according to mask.
+            data[mask] = object_id
+        # assert data.shape == (img_msg.height, img_msg.width)
+        img_msg = bridge.cv2_to_imgmsg(data, encoding="mono16")
+        img_msg.header.frame_id = msg.header.frame_id
+        img_msg.header.stamp = msg.header.stamp
+        img_msg.is_bigendian = 0
+        # img_msg.step = img_msg.width * 2  # 2 bytes per pixel
 
         if self.node_config.out_debug_segimage:
+            # print("[Tsuru] debug_segimage mode")
             debug_data = copy.deepcopy(data)
-            human_friendly_scaling = 256//(len(instances.pred_masks) + 1)
+            human_friendly_scaling = 65536//(len(instances.pred_masks) + 1)
             debug_data = debug_data * human_friendly_scaling
-            debug_seg_img = copy.deepcopy(seg_img)
-            debug_seg_img.data = debug_data.flatten().astype(np.uint8).tolist()
+            debug_img_msg = copy.deepcopy(img_msg)
+            debug_img_msg.data = debug_data.flatten().astype(np.uint16).tolist()
         else:
-            debug_seg_img = None
+            debug_img_msg = None
 
         # Create segmentation info message
-        class_names = self.predictor.metadata.get("thing_classes", None)
-        class_indexes = instances.pred_classes.tolist()
-        class_names_detected = \
-            ['background'] + [class_names[i] for i in class_indexes]
+        # class_names = self.predictor.metadata.get("thing_classes", None)
         seginfo = SegmentationInfo()
-        seginfo.detected_classes = class_names_detected
+        seginfo.detected_classes = object_class_ids # it was originally text, but now it is index for class table.
         # confidence with 1.0 about background detection
-        seginfo.scores = [1.0] + instances.scores.tolist()
+        seginfo.scores = instances.scores.tolist()
         seginfo.header = msg.header
-        seginfo.segmentation = seg_img
+        seginfo.segmentation = img_msg
 
         if self.node_config.verbose:
             time_elapsed_total = (rospy.Time.now() - time_start).to_sec()
@@ -128,4 +148,4 @@ class DeticWrapper:
             rospy.loginfo(
                 'total delay {} sec (this cb {} %)'.format(
                     total_publication_delay, responsibility))
-        return seginfo, debug_img, debug_seg_img
+        return seginfo, debug_img, debug_img_msg
