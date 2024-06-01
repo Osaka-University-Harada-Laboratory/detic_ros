@@ -32,7 +32,6 @@ class DeticWrapper:
             self.custom_vocabulary = custom_vocabulary
 
     def __init__(self, node_config: NodeConfig):
-        print("[Tsuru] init DeticWrapper")
         self._adhoc_hack_metadata_path()
         detectron_cfg = node_config.to_detectron_config()
         dummy_args = self.DummyArgs(
@@ -40,10 +39,8 @@ class DeticWrapper:
 
         self.predictor = VisualizationDemo(detectron_cfg, dummy_args)
         self.node_config = node_config
-        
-        print("[Tsuru] generate object class table.")
+
         class_names = self.predictor.metadata.get("thing_classes", None)
-        print("[Tsuru] num of classification object category: ", len(class_names))
         
         # save object class table as scv file
         import csv
@@ -51,9 +48,7 @@ class DeticWrapper:
         with open(filename, mode='w', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
             for item in class_names:
-                writer.writerow([item])  # 各要素を1行として書き込む
-        print("[Tsuru] save object class table as ", filename)
-        
+                writer.writerow([item])  # 各要素を1行として書き込む        
 
     @staticmethod
     def _adhoc_hack_metadata_path():
@@ -74,7 +69,6 @@ class DeticWrapper:
             time_start = rospy.Time.now()
 
         predictions, visualized_output = self.predictor.run_on_image(img)
-        # print("[Tsuru] predictions: ", predictions)
         instances = predictions['instances'].to(torch.device("cpu"))
 
         if self.node_config.verbose:
@@ -99,7 +93,6 @@ class DeticWrapper:
         data = np.zeros((img.shape[0], img.shape[1])).astype(np.uint16)
 
         object_class_ids = instances.pred_classes.tolist()
-        print("[Tsuru] object_class_ids: ", object_class_ids)
 
         # largest to smallest order to reduce occlusion.
         sorted_index = np.argsort(
@@ -107,7 +100,6 @@ class DeticWrapper:
         for i in sorted_index:
             object_id = object_class_ids[i]
             mask = instances.pred_masks[i]
-            # [tsuru] write object_id number on pixels according to mask.
             data[mask] = object_id
         # assert data.shape == (img_msg.height, img_msg.width)
         img_msg = bridge.cv2_to_imgmsg(data, encoding="mono16")
@@ -117,7 +109,6 @@ class DeticWrapper:
         # img_msg.step = img_msg.width * 2  # 2 bytes per pixel
 
         if self.node_config.out_debug_segimage:
-            # print("[Tsuru] debug_segimage mode")
             debug_data = copy.deepcopy(data)
             human_friendly_scaling = 65536//(len(instances.pred_masks) + 1)
             debug_data = debug_data * human_friendly_scaling
