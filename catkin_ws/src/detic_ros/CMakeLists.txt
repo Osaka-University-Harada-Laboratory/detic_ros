@@ -2,13 +2,13 @@ cmake_minimum_required(VERSION 3.0.2)
 project(detic_ros)
 
 find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
-  image_transport
-  roscpp
-  sensor_msgs
-  std_msgs
-  visualization_msgs
-  message_generation
+    cv_bridge
+    image_transport
+    roscpp
+    sensor_msgs
+    std_msgs
+    visualization_msgs
+    message_generation
 )
 
 add_message_files(
@@ -28,7 +28,7 @@ generate_messages(
 )
 
 catkin_package(
-  CATKIN_DEPENDS
+    CATKIN_DEPENDS
     cv_bridge
     image_transport
     roscpp
@@ -39,7 +39,7 @@ catkin_package(
 )
 
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
 )
 
 catkin_install_python(PROGRAMS

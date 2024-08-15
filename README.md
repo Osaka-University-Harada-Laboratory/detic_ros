@@ -21,97 +21,92 @@ Docker environment for Detic ROS driver. This repository was inspired by [HiroIs
 
 ## Installation
 ```bash
-sudo apt install graphicsmagick-imagemagick-compat byobu -y
-```
-```bash
-git clone git@github.com:Osaka-University-Harada-Laboratory/detic_ros.git --recursive --depth 1
-```
-```bash
-cd detic_ros/docker && COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose build --no-cache --parallel 
+sudo apt install graphicsmagick-imagemagick-compat byobu -y && git clone git@github.com:Osaka-University-Harada-Laboratory/detic_ros.git --recursive --depth 1 && cd detic_ros/docker && COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose build --no-cache --parallel 
 ```
 
 ## Usage
 
 1. Connect the camera device to the computer with a USB3.0 cable
+
 2. Execute the below command according to the sensing device connected
-```bash
-cd detic_ros/docker && docker compose up
-```
-```bash
-./utils/k4a_demo.sh
-```
-```bash
-./utils/rsd435_demo.sh
-```
-```bash
-./utils/webcam_demo.sh
-```
-<img src=image/demo.gif width=720>  
+    ```bash
+    cd detic_ros/docker && docker compose up
+    ```
+    ```bash
+    ./utils/k4a_demo.sh
+    ```
+    ```bash
+    ./utils/rsd435_demo.sh
+    ```
+    ```bash
+    ./utils/webcam_demo.sh
+    ```  
+    <img src=image/demo.gif width=720>  
 
 ### Detic
 
 #### Azure Kinect
-```bash
-xhost + && docker exec -it detic_1804_container bash -it -c "roslaunch detic_ros k4a_bringup.launch"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros resize.launch"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros sample.launch out_debug_img:=true out_debug_segimg:=false compressed:=false device:=auto input_image:=/resized_image_color"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_image"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_segmentation_image _do_dynamic_scaling:=true"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "rostopic echo /docker/detic_segmentor/segmentation_info/detected_classes"
-```
+    ```bash
+    xhost + && docker exec -it detic_1804_container bash -it -c "roslaunch detic_ros k4a_bringup.launch"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros resize.launch"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros sample.launch out_debug_img:=true out_debug_segimg:=false compressed:=false device:=auto input_image:=/resized_image_color"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_image"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_segmentation_image _do_dynamic_scaling:=true"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "rostopic echo /docker/detic_segmentor/segmentation_info/detected_classes"
+    ```
 
 #### RealSense D435
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros rsd435_bringup.launch"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros sample.launch out_debug_img:=true out_debug_segimg:=false compressed:=false device:=auto input_image:=/camera/color/image_raw"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_image"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_segmentation_image _do_dynamic_scaling:=true"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "rostopic echo /docker/detic_segmentor/segmentation_info/detected_classes"
-```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros rsd435_bringup.launch"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros sample.launch out_debug_img:=true out_debug_segimg:=false compressed:=false device:=auto input_image:=/camera/color/image_raw"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_image"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_segmentation_image _do_dynamic_scaling:=true"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "rostopic echo /docker/detic_segmentor/segmentation_info/detected_classes"
+    ```
 
 #### USB camera
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros usbcam_bringup.launch" 
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros sample.launch out_debug_img:=true out_debug_segimg:=false compressed:=false device:=auto input_image:=/usb_cam/image_raw"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_image"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_segmentation_image _do_dynamic_scaling:=true"
-```
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "rostopic echo /docker/detic_segmentor/segmentation_info/detected_classes"
-```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros usbcam_bringup.launch" 
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "roslaunch detic_ros sample.launch out_debug_img:=true out_debug_segimg:=false compressed:=false device:=auto input_image:=/usb_cam/image_raw"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_image"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "rosrun image_view image_view image:=/docker/detic_segmentor/debug_segmentation_image _do_dynamic_scaling:=true"
+    ```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "rostopic echo /docker/detic_segmentor/segmentation_info/detected_classes"
+    ```
 
 ### Other examples
 #### Single image 
-```bash
-xhost + && docker exec -it detic_2004_container bash -it -c "cd /catkin_ws/src/Detic && python3 demo.py --config-file configs/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.yaml --input ../detic_ros/data/(image_name).png --output /tmp/out.png --opts MODEL.WEIGHTS models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth"
-```
-```bash
-docker cp detic_2004_container:/tmp/out.png /tmp/out.png && display /tmp/out.png
-```
+    ```bash
+    xhost + && docker exec -it detic_2004_container bash -it -c "cd /catkin_ws/src/Detic && python3 demo.py --config-file configs/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.yaml --input ../detic_ros/data/(image_name).png --output /tmp/out.png --opts MODEL.WEIGHTS models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth"
+    ```
+    ```bash
+    docker cp detic_2004_container:/tmp/out.png /tmp/out.png && display /tmp/out.png
+    ```
 
 ## Author / Contributor
 

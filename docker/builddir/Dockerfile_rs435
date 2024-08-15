@@ -1,11 +1,14 @@
 FROM nvidia/opengl:1.2-glvnd-devel-ubuntu20.04
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl lsb-release wget gnupg
+# setting environmental variables
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt update -y && apt install -y --no-install-recommends curl lsb-release wget gnupg
 RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 RUN curl -sSL 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0xC1CF6E31E6BADE8868B172B4F42ED6FBAB17C654' | apt-key add -
 
-RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends tzdata
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt update -y && apt install -y --no-install-recommends tzdata
+RUN apt update -y && apt install -y --no-install-recommends \
     ros-noetic-desktop-full \
     ros-noetic-camera-calibration \
     ros-noetic-image-proc \
@@ -17,29 +20,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-noetic-rgbd-launch \
     ros-noetic-pcl-ros \
     ros-noetic-ddynamic-reconfigure \
-    pcl-tools \
+    software-properties-common \
     python3-osrf-pycommon \
     python3-catkin-tools \
+    libcanberra-gtk* \
+    build-essential \
     python3-rosdep \
-    byobu \
     libudev-dev \
     python3-pip \
+    ninja-build \
+    imagemagick \
+    net-tools \
+    pcl-tools \
+    byobu \
+    dbus \
     git \
     vim \
-    net-tools \
-    build-essential \
-    libcanberra-gtk* \
-    dbus \
-    ninja-build \
-    software-properties-common \
-    imagemagick
+    && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /tmp/
 RUN mkdir -p /catkin_ws/src && \
-	cd /catkin_ws/src && \
-	/bin/bash -c "source /opt/ros/noetic/setup.bash; catkin_init_workspace" && \
-	cd /catkin_ws && \
-	/bin/bash -c "source /opt/ros/noetic/setup.bash; catkin build" && \
+	/bin/bash -c "cd /catkin_ws/src && source /opt/ros/noetic/setup.bash && catkin_init_workspace" && \
+	/bin/bash -c "cd /catkin_ws && source /opt/ros/noetic/setup.bash && catkin build" && \
 	echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc && \
 	echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc && \
 	echo "export ROS_PACKAGE_PATH=\${ROS_PACKAGE_PATH}:/catkin_ws" >> ~/.bashrc && \
@@ -47,31 +48,32 @@ RUN mkdir -p /catkin_ws/src && \
 
 # OpenCV 3.2.0
 WORKDIR /
-RUN git clone https://github.com/opencv/opencv/ -b 3.2.0 --depth 1 
-RUN git clone https://github.com/opencv/opencv_contrib/ -b 3.2.0 --depth 1 
+RUN git clone https://github.com/opencv/opencv/ -b 3.2.0 && cd opencv && git reset --hard 70bbf17
+RUN git clone https://github.com/opencv/opencv_contrib/ -b 3.2.0 && cd opencv_contrib && git reset --hard 8634252
 RUN sed -i '1s/^/#define AVFMT_RAWPICTURE 0x0020\n/' /opencv/modules/videoio/src/cap_ffmpeg_impl.hpp
 RUN sed -i '1s/^/#define CODEC_FLAG_GLOBAL_HEADER AV_CODEC_FLAG_GLOBAL_HEADER\n/' /opencv/modules/videoio/src/cap_ffmpeg_impl.hpp
 RUN sed -i '1s/^/#define AV_CODEC_FLAG_GLOBAL_HEADER (1 << 22)\n/' /opencv/modules/videoio/src/cap_ffmpeg_impl.hpp
 RUN mkdir /opencv/build/
 WORKDIR /opencv/build/
-RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
-	  -D OPENCV_ENABLE_NONFREE=ON \
-	  -D ENABLE_PRECOMPILED_HEADERS=OFF \
-	  -D OPENCV_EXTRA_MODULES_PATH=/opencv_contrib/modules \
-      -D BUILD_opencv_python2=OFF \
-      -D BUILD_opencv_python3=OFF ..
-RUN make -j8; make install
+RUN cmake \
+    -D CMAKE_BUILD_TYPE=RELEASE \
+    -D OPENCV_ENABLE_NONFREE=ON \
+    -D ENABLE_PRECOMPILED_HEADERS=OFF \
+    -D OPENCV_EXTRA_MODULES_PATH=/opencv_contrib/modules \
+    -D BUILD_opencv_python2=OFF \
+    -D BUILD_opencv_python3=OFF ..
+RUN make -j8 && make install
 
 # RealSense
 WORKDIR /
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE
 RUN add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" -u
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt install -y --no-install-recommends \
     librealsense2-dkms \
     librealsense2-utils \
     librealsense2-dev
 WORKDIR /catkin_ws/src/
-RUN git clone https://github.com/IntelRealSense/realsense-ros.git -b ros1-legacy --recursive --depth 1
+RUN git clone https://github.com/IntelRealSense/realsense-ros.git -b ros1-legacy --recursive && cd realsense-ros && git reset --hard b14ce43
 
 # Detic
 ADD detectron2 /catkin_ws/src/detectron2
