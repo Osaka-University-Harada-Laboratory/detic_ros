@@ -42,7 +42,7 @@ sudo apt install graphicsmagick-imagemagick-compat byobu -y && git clone git@git
     ```
 
     ```bash
-    ./utils/webcam_demo.sh
+    ./utils/usbcam_demo.sh
     ```  
     <img src=image/demo.gif width=720>  
 
